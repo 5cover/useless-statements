@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/5cover/ast-gen/refs/heads/main/schemas/nodes.json
+prog:
+  body: stmt*
+
+stmt:
+  expr:
+    binary:
+      lhs: expr
+      op: =TokenType
+      rhs: expr
+    number:
+      value: =decimal
+  nop:
