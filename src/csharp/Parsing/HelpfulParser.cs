@@ -29,8 +29,7 @@ sealed class HelpfulParser(IReadOnlyList<Token> tokens, HelpfulParser.ErrorRepor
             if (s is not null) body.Add(s);
             // A Very Primitive Sychronization
             // but it prevents infinite loops if nothing was parsed.
-            // but could this hide errors if we something had been parsed? todo
-            else _i++; // Might go outside _tokens but that's ok since IsAtEnd checks for that
+            else _i++;
         }
         return new(body);
     }
