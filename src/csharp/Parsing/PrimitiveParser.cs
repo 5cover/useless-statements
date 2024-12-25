@@ -19,25 +19,9 @@ sealed class Parser(IReadOnlyList<Token> tokens)
 
     Node.Stmt? Stmt() => Match(Semi) ? new Node.Stmt.Nop() : Expr();
 
-    Node.Stmt.Expr? Expr()
-    {
-        Node.Stmt.Expr? expr = ExprMult(); if (expr is null) return null;
-        while (Match([Plus, Minus], out var op)) {
-            var rhs = ExprMult(); if (rhs is null) return null;
-            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
-        }
-        return expr;
-    }
+    Node.Stmt.Expr? Expr() => ParseExprBinaryLeftAssociative(ExprMult, [Plus, Minus]);
 
-    Node.Stmt.Expr? ExprMult()
-    {
-        Node.Stmt.Expr? expr = ExprPrimary(); if (expr is null) return null;
-        while (Match([Mul, Div, Mod], out var op)) {
-            var rhs = ExprPrimary(); if (rhs is null) return null;
-            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
-        }
-        return expr;
-    }
+    Node.Stmt.Expr? ExprMult() => ParseExprBinaryLeftAssociative(ExprPrimary, [Mul, Div, Mod]);
 
     Node.Stmt.Expr.Number? ExprPrimary()
     {
@@ -75,4 +59,14 @@ sealed class Parser(IReadOnlyList<Token> tokens)
     }
 
     bool IsAtEnd => _i >= _tokens.Count;
+
+    Node.Stmt.Expr? ParseExprBinaryLeftAssociative<T>(Func<T?> operand, TokenType[] operators) where T : Node.Stmt.Expr
+    {
+        Node.Stmt.Expr? expr = operand(); if (expr is null) return null;
+        while (Match(operators, out var op)) {
+            var rhs = operand(); if (rhs is null) return null;
+            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
+        }
+        return expr;
+    }
 }
