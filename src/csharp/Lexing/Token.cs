@@ -4,12 +4,16 @@ readonly record struct Token(Range Extent, TokenType Type, object? Value = null)
 
 enum TokenType
 {
-    Plus,
     Div,
-    Mod,
     Minus,
+    Mod,
     Mul,
+    Plus,
     Semi,
+
+    LParen,
+    RParen,
+
     LitNumber,
 }
 

@@ -20,6 +20,8 @@ sealed class Lexer(string input)
             case '/': yield return Ok(Div); break;
             case '*': yield return Ok(Mul); break;
             case '%': yield return Ok(Mod); break;
+            case '(': yield return Ok(LParen); break;
+            case ')': yield return Ok(RParen); break;
             case '.' when MatchDigit():
                 while (MatchDigit()) { }
                 yield return OkDecimal();

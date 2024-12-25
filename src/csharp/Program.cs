@@ -8,7 +8,7 @@ static class Program
     {
         var input = args.Length > 0 ? args[0] : "";
         var tokens = new Lexer(input).Lex().ToArray();
-        var ast = new Parser(tokens).Parse();
+        var ast = new PrimitiveParser(tokens).Parse();
         AstPrinter.PrettyPrint(ast);
     }
 
