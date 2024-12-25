@@ -46,6 +46,8 @@ sealed class Lexer(string input)
                 break;
             }
         }
+
+        yield return Ok(Eof);
     }
 
     Token OkDecimal() => new Token(_start.._i, LitNumber, decimal.Parse(Lexeme, InvariantCulture));

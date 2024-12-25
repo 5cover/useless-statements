@@ -4,12 +4,19 @@ using static Scover.UselessStatements.Lexing.TokenType;
 namespace Scover.UselessStatements;
 
 /// <summary>
-/// A primitive parser. Returns <see langword="null"/> and calls that error handling.
+/// An helpful parser that produces error messages and returns null on error.
 /// </summary>
-/// <param name="tokens">The tokens to parse.</param>
-sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
+/// <param name="tokens">The tokens to parse</param>
+/// <param name="reportError">The function to call to report an error (represented as a string)</param>
+/// <remarks>
+/// The helpful parser works by reporting errors when it fails to parse a terminal.
+/// When a non-terminal fails (a parsing function returns <see langword="null"/>), it doesn't report an error, as the error has already been reported for the particular terminal that failed.
+/// </remarks>
+sealed class HelpfulParser(IReadOnlyList<Token> tokens, HelpfulParser.ErrorReporter reportError)
 {
+    internal delegate void ErrorReporter(int tokenIndex, string message);
     readonly IReadOnlyList<Token> _tokens = tokens;
+    readonly ErrorReporter _reportError = reportError;
     int _i;
 
     public Node.Prog Parse() => Prog();
@@ -20,6 +27,10 @@ sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
         while (!IsAtEnd) {
             var s = Stmt();
             if (s is not null) body.Add(s);
+            // A Very Primitive Sychronization
+            // but it prevents infinite loops if nothing was parsed.
+            // but could this hide errors if we something had been parsed? todo
+            else _i++; // Might go outside _tokens but that's ok since IsAtEnd checks for that
         }
         return new(body);
     }
@@ -35,13 +46,11 @@ sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
         if (Match(LitNumber, out var value)) {
             return new Node.Stmt.Expr.Number((decimal)value.NotNull());
         } else if (Match(LParen)) {
-            var expr = Expr();
-            // The right parenthesis doesn't bring any new information.
-            // The parser would still work if we did not require it, but it would lead to confusion and ambiguity on the user's side.
-            // - `(1+2)*3` yields 9
-            // - `(1+2*3` yields 6 but it is almost certain the user meant the first. not requiring a RParen means we silently change the meaning of the expression instead of causing a syntax error.
-            if (!Match(RParen)) return null;
-            return expr;
+            var expr = Expr(); if (expr is null) return null;
+            if (Match(RParen)) return expr;
+            else Error("Expected ')'");
+        } else {
+            Error("Expected number or '('");
         }
 
         return null;
@@ -86,5 +95,7 @@ sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
         return true;
     }
 
-    bool IsAtEnd => _tokens[_i].Type == Eof;
+    bool IsAtEnd => _i >= _tokens.Count || _tokens[_i].Type == Eof;
+
+    void Error(string message) => _reportError(_i, message);
 }
