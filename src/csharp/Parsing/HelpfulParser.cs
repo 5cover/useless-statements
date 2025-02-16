@@ -1,7 +1,7 @@
 using Scover.UselessStatements.Lexing;
 using static Scover.UselessStatements.Lexing.TokenType;
 
-namespace Scover.UselessStatements;
+namespace Scover.UselessStatements.Parsing;
 
 /// <summary>
 /// An helpful parser that produces error messages and returns null on error.
@@ -12,24 +12,25 @@ namespace Scover.UselessStatements;
 /// The helpful parser works by reporting errors when it fails to parse a terminal.
 /// When a non-terminal fails (a parsing function returns <see langword="null"/>), it doesn't report an error, as the error has already been reported for the particular terminal that failed.
 /// </remarks>
-sealed class HelpfulParser(IReadOnlyList<Token> tokens, HelpfulParser.ErrorReporter reportError)
+sealed class HelpfulParser(HelpfulParser.ErrorReporter reportError) : Parser
 {
     internal delegate void ErrorReporter(int tokenIndex, string message);
-    readonly IReadOnlyList<Token> _tokens = tokens;
     readonly ErrorReporter _reportError = reportError;
-    int _i;
 
-    public Node.Prog Parse() => Prog();
-
-    Node.Prog Prog()
+    protected override Node.Prog Prog()
     {
         List<Node.Stmt> body = [];
         while (!IsAtEnd) {
+            int iStart = _i;
             var s = Stmt();
             if (s is not null) body.Add(s);
             // A Very Primitive Sychronization
             // but it prevents infinite loops if nothing was parsed.
-            else _i++;
+            // Check if we read something before incrementing - otherwise we risk skipping valid tokens.
+            // Example : "(5+;". This prog fails in expr on ';', but ';' should still be parsed as a valid nop.
+            // Trade-off : duplicate errors. Take "(5+)". The prog fails in expr on ')'. The prog tries again and fails again with the same error
+            // solution : disallow reporting multiple errors on the same token (see Error)
+            else if (iStart == _i) _i++;
         }
         return new(body);
     }
@@ -67,34 +68,41 @@ sealed class HelpfulParser(IReadOnlyList<Token> tokens, HelpfulParser.ErrorRepor
 
     bool Match(TokenType expected, out object? value)
     {
-        if (IsAtEnd || expected != _tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[_i].Type) {
             value = null;
             return false;
         }
-        value = _tokens[_i++].Value;
+        value = Tokens[_i++].Value;
         return true;
     }
 
     bool Match(TokenType[] expected, out TokenType choosen)
     {
-        if (IsAtEnd || !expected.Contains(_tokens[_i].Type)) {
+        if (IsAtEnd || !expected.Contains(Tokens[_i].Type)) {
             choosen = default;
             return false;
         }
-        choosen = _tokens[_i++].Type;
+        choosen = Tokens[_i++].Type;
         return true;
     }
 
     bool Match(TokenType expected)
     {
-        if (IsAtEnd || expected != _tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[_i].Type) {
             return false;
         }
         _i++;
         return true;
     }
 
-    bool IsAtEnd => _i >= _tokens.Count || _tokens[_i].Type == Eof;
+    bool IsAtEnd => _i >= Tokens.Count || Tokens[_i].Type == Eof;
 
-    void Error(string message) => _reportError(_i, message);
+    int _iLastError = -1;
+    void Error(string message)
+    {
+        if (_iLastError != _i) {
+            _iLastError = _i;
+            _reportError(_i, message);
+        }
+    }
 }

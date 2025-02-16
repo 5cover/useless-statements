@@ -1,20 +1,15 @@
 using Scover.UselessStatements.Lexing;
 using static Scover.UselessStatements.Lexing.TokenType;
 
-namespace Scover.UselessStatements;
+namespace Scover.UselessStatements.Parsing;
 
 /// <summary>
 /// A primitive parser. Returns <see langword="null"/> and calls that error handling.
 /// </summary>
 /// <param name="tokens">The tokens to parse.</param>
-sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
+sealed class PrimitiveParser : Parser
 {
-    readonly IReadOnlyList<Token> _tokens = tokens;
-    int _i;
-
-    public Node.Prog Parse() => Prog();
-
-    Node.Prog Prog()
+    protected override Node.Prog Prog()
     {
         List<Node.Stmt> body = [];
         while (!IsAtEnd) {
@@ -59,32 +54,32 @@ sealed class PrimitiveParser(IReadOnlyList<Token> tokens)
 
     bool Match(TokenType expected, out object? value)
     {
-        if (IsAtEnd || expected != _tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[_i].Type) {
             value = null;
             return false;
         }
-        value = _tokens[_i++].Value;
+        value = Tokens[_i++].Value;
         return true;
     }
 
     bool Match(TokenType[] expected, out TokenType choosen)
     {
-        if (IsAtEnd || !expected.Contains(_tokens[_i].Type)) {
+        if (IsAtEnd || !expected.Contains(Tokens[_i].Type)) {
             choosen = default;
             return false;
         }
-        choosen = _tokens[_i++].Type;
+        choosen = Tokens[_i++].Type;
         return true;
     }
 
     bool Match(TokenType expected)
     {
-        if (IsAtEnd || expected != _tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[_i].Type) {
             return false;
         }
         _i++;
         return true;
     }
 
-    bool IsAtEnd => _tokens[_i].Type == Eof;
+    bool IsAtEnd => Tokens[_i].Type == Eof;
 }

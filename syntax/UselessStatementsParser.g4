@@ -6,7 +6,7 @@ options {
 
 prog: stmt* EOF;
 
-stmt: expr? Semi;
+stmt: Semi | expr;
 
 expr: expr_add;
 
