@@ -1,17 +1,15 @@
-﻿using Scover.UselessStatements.Lexing;
+﻿using Scover.UselessStatements;
+using Scover.UselessStatements.Lexing;
 
 namespace Scover.UselessStatementsTests;
 
 public class LexerTests
 {
-    static async Task AssertErrors(Lexer l, IReadOnlyList<Error> errors)
+    static async Task AssertErrors(Lexer l, IReadOnlyList<SyntaxError> errors)
     {
         int i = 0;
         while (l.TryGetError(out var e)) {
-            using var _ = Assert.Multiple();
-            await Assert.That(e.Index).IsEqualTo(errors[i].Index);
-            await Assert.That(e.Message).IsEqualTo(errors[i].Message);
-            ++i;
+            await Assert.That(e).IsEqualTo(errors[i++]);
         }
         await Assert.That(errors).HasCount().EqualTo(i);
     }
@@ -115,7 +113,7 @@ public class LexerTests
         const string Input = "123..45";
         var l = new Lexer(Input);
         var tokens = l.Lex().ToArray();
-        await AssertErrors(l, [new(3, "Dot must be followed by at least 1 digit")]);
+        await AssertErrors(l, [new(3, ErrorVerb.Insert, "digit")]);
         await Assert.That(tokens).HasCount().EqualTo(2);
         using var _ = Assert.Multiple();
         await AssertIsEofToken(Input, tokens[1]);
@@ -129,7 +127,7 @@ public class LexerTests
     {
         var l = new Lexer(input);
         var tokens = l.Lex().ToArray();
-        await AssertErrors(l, [new(0, $"Stray '{input}' in program")]);
+        await AssertErrors(l, [new(0, ErrorVerb.Remove, $"`{input}`")]);
         await AssertIsEofToken(input, await Assert.That(tokens).HasSingleItem());
     }
 }

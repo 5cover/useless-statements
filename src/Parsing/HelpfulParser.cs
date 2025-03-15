@@ -12,10 +12,10 @@ namespace Scover.UselessStatements.Parsing;
 /// The helpful parser works by reporting errors when it fails to parse a terminal.
 /// When a non-terminal fails (a parsing function returns <see langword="null"/>), it doesn't report an error, as the error has already been reported for the particular terminal that failed.
 /// </remarks>
-sealed class HelpfulParser(HelpfulParser.ErrorReporter reportError) : Parser
+public sealed class HelpfulParser(Action<SyntaxError> reportError) : Parser
 {
-    internal delegate void ErrorReporter(int tokenIndex, string message);
-    readonly ErrorReporter _reportError = reportError;
+
+    readonly Action<SyntaxError> _reportError = reportError;
 
     protected override Node.Prog Prog()
     {
@@ -46,11 +46,14 @@ sealed class HelpfulParser(HelpfulParser.ErrorReporter reportError) : Parser
         if (Match(LitNumber, out var value)) {
             return new Node.Stmt.Expr.Number((decimal)value.NotNull());
         } else if (Match(LParen)) {
-            var expr = Expr(); if (expr is null) return null;
-            if (Match(RParen)) return expr;
-            else Error("Expected ')'");
+            var expr = Expr();
+            if (Match(RParen)) {
+                return expr;
+            } else {
+                Error(ErrorVerb.Insert, "`)`");
+            }
         } else {
-            Error("Expected number or '('");
+            Error(ErrorVerb.Replace, "expression");
         }
 
         return null;
@@ -97,12 +100,5 @@ sealed class HelpfulParser(HelpfulParser.ErrorReporter reportError) : Parser
 
     bool IsAtEnd => _i >= Tokens.Count || Tokens[_i].Type == Eof;
 
-    int _iLastError = -1;
-    void Error(string message)
-    {
-        if (_iLastError != _i) {
-            _iLastError = _i;
-            _reportError(_i, message);
-        }
-    }
+    void Error(ErrorVerb verb, string subject) => _reportError(new(_i, verb, subject));
 }

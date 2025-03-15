@@ -2,7 +2,7 @@ using Scover.UselessStatements.Lexing;
 
 namespace Scover.UselessStatements.Parsing;
 
-abstract class Parser
+public abstract class Parser
 {
     protected IReadOnlyList<Token> Tokens { get; private set; } = [];
     protected int _i;

@@ -3,16 +3,16 @@ using static Scover.UselessStatements.Lexing.TokenType;
 
 namespace Scover.UselessStatements.Lexing;
 
-public readonly record struct Error(int Index, string Message);
+
 
 public sealed class Lexer(string input)
 {
-    readonly Queue<Error> _errors = new();
+    readonly Queue<SyntaxError> _errors = new();
     readonly string _input = input;
     int _start;
     int _i;
 
-    public bool TryGetError(out Error error) => _errors.TryDequeue(out error);
+    public bool TryGetError(out SyntaxError error) => _errors.TryDequeue(out error);
 
     public IEnumerable<Token> Lex()
     {
@@ -40,14 +40,14 @@ public sealed class Lexer(string input)
                             while (MatchDigit()) { }
                             yield return OkDecimal();
                         } else {
-                            Error("Dot must be followed by at least 1 digit");
+                            Error(ErrorVerb.Insert, "digit");
                         }
                     } else {
                         while (MatchDigit()) { }
                         yield return OkDecimal();
                     }
                 } else if (!char.IsWhiteSpace(c)) {
-                    Error($"Stray '{c}' in program");
+                    Error(ErrorVerb.Remove, $"`{c}`");
                 }
                 break;
             }
@@ -56,7 +56,7 @@ public sealed class Lexer(string input)
         yield return Ok(Eof);
     }
 
-    void Error(string message) => _errors.Enqueue(new(_i - 1, message));
+    void Error(ErrorVerb verb, string subject) => _errors.Enqueue(new(_i - 1, verb, subject));
 
     Token OkDecimal() => new(new(_start, _i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
     Token Ok(TokenType type) => new(new(_start, _i), type);

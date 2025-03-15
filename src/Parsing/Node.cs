@@ -2,11 +2,11 @@ using Scover.UselessStatements.Lexing;
 
 namespace Scover.UselessStatements;
 
-interface Node
+public interface Node
 {
     sealed class Prog(IReadOnlyList<Stmt> body) : Node
     {
-        internal IReadOnlyList<Stmt> Body { get; } = body;
+        public IReadOnlyList<Stmt> Body { get; } = body;
     }
     interface Stmt : Node
     {
@@ -14,13 +14,13 @@ interface Node
         {
             sealed class Binary(Expr lhs, TokenType op, Expr rhs) : Expr
             {
-                internal Expr Lhs { get; } = lhs;
-                internal TokenType Op { get; } = op;
-                internal Expr Rhs { get; } = rhs;
+                public Expr Lhs { get; } = lhs;
+                public TokenType Op { get; } = op;
+                public Expr Rhs { get; } = rhs;
             }
             sealed class Number(decimal value) : Expr
             {
-                internal decimal Value { get; } = value;
+                public decimal Value { get; } = value;
             }
         }
         sealed class Nop : Stmt

@@ -7,7 +7,7 @@ namespace Scover.UselessStatements.Parsing;
 /// A primitive parser. Returns <see langword="null"/> and calls that error handling.
 /// </summary>
 /// <param name="tokens">The tokens to parse.</param>
-sealed class PrimitiveParser : Parser
+public sealed class PrimitiveParser : Parser
 {
     protected override Node.Prog Prog()
     {
@@ -35,8 +35,7 @@ sealed class PrimitiveParser : Parser
             // The parser would still work if we did not require it, but it would lead to confusion and ambiguity on the user's side.
             // - `(1+2)*3` yields 9
             // - `(1+2*3` yields 6 but it is almost certain the user meant the first. not requiring a RParen means we silently change the meaning of the expression instead of causing a syntax error.
-            if (!Match(RParen)) return null;
-            return expr;
+            return !Match(RParen) ? null : expr;
         }
 
         return null;

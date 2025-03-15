@@ -7,18 +7,17 @@ static class Program
 {
     static void Main(string[] args)
     {
-        if (args.Length == 0) {
+        if (args.Length != 2) {
             Console.Error.WriteLine($"usage: {Environment.ProcessPath} {{primitive|helpful|railway|data}} [INPUT]");
             Environment.ExitCode = 1;
             return;
         }
 
-        var input = args.Length > 1 ? args[1] : "(5+;)";
-        var lexer = new Lexer(input);
+        var lexer = new Lexer(args[1]);
         var tokens = lexer.Lex().ToArray();
 
         while (lexer.TryGetError(out var e)) {
-            Error($"{e.Message} at {e.Index}");
+            SyntaxError(e.Verb, e.Subject, FixedRange.Of(e.Index, 1), args[1][e.Index].ToString(), "");
         }
 
         Parser parser;
@@ -26,9 +25,9 @@ static class Program
             parser = new PrimitiveParser();
         } else if ("helpful".StartsWith(args[0])) {
             parser = new HelpfulParser(ParseError);
-        } else if ("railway".StartsWith(args[0])) {
+        } /*else if ("railway".StartsWith(args[0])) {
             parser = new RailwayParser(ParseError);
-        } /*else if ("data".StartsWith(args[0])) {
+        } else if ("data".StartsWith(args[0])) {
             parser = new DataOrientedParser(ParseError);
         }*/ else {
             Console.Error.WriteLine($"{Environment.ProcessPath}: unknown parser: {args[0]}");
@@ -39,11 +38,32 @@ static class Program
         var ast = parser.Parse(tokens);
         AstPrinter.PrettyPrint(ast);
 
-        void ParseError(int iToken, string message) =>
-            Console.Error.WriteLine($"Error on `{input[(Range)tokens[iToken].Extent]}` at offset {tokens[iToken].Extent.Start} : {message}");
+        void ParseError(SyntaxError e)
+        {
+            bool isFirst = e.Index == 0;
+            bool isLast = e.Index >= tokens.Length - 2; // eof doesn't count
+            string closest =
+                !isFirst ? $" (after `{args[1][(Range)tokens[e.Index - 1].Extent]}`)"
+                : !isLast ? $" (before `{args[1][(Range)tokens[e.Index + 1].Extent]}`)"
+                : "";
+            var r = tokens[e.Index].Extent;
+            SyntaxError(e.Verb, e.Subject, r, args[1][(Range)r], closest);
+        }
     }
 
-    public static void Error(string message) =>
-        Console.Error.WriteLine($"Error: {message}");
+    static void SyntaxError(ErrorVerb verb, string subject, FixedRange range, string current, string closest)
+    {
+        Console.Error.Write("SyntaxError: ");
+        switch (verb) {
+        case ErrorVerb.Insert:
+            Console.Error.WriteLine($"insert {subject} at offset {range.End - 1}{closest}");
+            break;
+        case ErrorVerb.Replace:
+            Console.Error.WriteLine(current == ""
+                ? $"insert {subject} at offset {range.End - 1}{closest}"
+                : $"replace `{current}` at offset {range.Start}{closest} by {subject}");
+            break;
+        }
+    }
 
 }
