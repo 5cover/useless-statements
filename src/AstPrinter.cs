@@ -1,7 +1,8 @@
 using System.Diagnostics;
-using Scover.UselessStatements;
 using Scover.UselessStatements.Lexing;
 using static Scover.UselessStatements.Lexing.TokenType;
+
+namespace Scover.UselessStatements;
 
 static class AstPrinter
 {

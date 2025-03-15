@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Scover.UselessStatements.Lexing;
 
-readonly record struct FixedRange
+public readonly record struct FixedRange
 {
     public FixedRange(int start, int end)
     {
@@ -19,9 +19,9 @@ readonly record struct FixedRange
     public int Length => End - Start;
 }
 
-readonly record struct Token(FixedRange Extent, TokenType Type, object? Value = null);
+public readonly record struct Token(FixedRange Extent, TokenType Type, object? Value = null);
 
-enum TokenType
+public enum TokenType
 {
     // The Eof token allow us to not worry about the size of our token streams.
     // It makes some things easier for knowing when we're at the end and things like that.

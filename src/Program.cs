@@ -14,7 +14,12 @@ static class Program
         }
 
         var input = args.Length > 1 ? args[1] : "(5+;)";
-        var tokens = new Lexer(input).Lex().ToArray();
+        var lexer = new Lexer(input);
+        var tokens = lexer.Lex().ToArray();
+
+        while (lexer.TryGetError(out var e)) {
+            Error($"{e.Message} at {e.Index}");
+        }
 
         Parser parser;
         if ("primitive".StartsWith(args[0])) {
@@ -23,9 +28,9 @@ static class Program
             parser = new HelpfulParser(ParseError);
         } else if ("railway".StartsWith(args[0])) {
             parser = new RailwayParser(ParseError);
-        } else if ("data".StartsWith(args[0])) {
+        } /*else if ("data".StartsWith(args[0])) {
             parser = new DataOrientedParser(ParseError);
-        } else {
+        }*/ else {
             Console.Error.WriteLine($"{Environment.ProcessPath}: unknown parser: {args[0]}");
             Environment.ExitCode = 1;
             return;

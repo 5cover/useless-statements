@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
+namespace Scover.UselessStatements;
+
 static class Extensions
 {
     public static T NotNull<T>([NotNull] this T? t)

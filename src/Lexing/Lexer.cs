@@ -1,12 +1,18 @@
-using static Scover.UselessStatements.Lexing.TokenType;
 using static System.Globalization.CultureInfo;
+using static Scover.UselessStatements.Lexing.TokenType;
+
 namespace Scover.UselessStatements.Lexing;
 
-sealed class Lexer(string input)
+public readonly record struct Error(int Index, string Message);
+
+public sealed class Lexer(string input)
 {
+    readonly Queue<Error> _errors = new();
     readonly string _input = input;
     int _start;
     int _i;
+
+    public bool TryGetError(out Error error) => _errors.TryDequeue(out error);
 
     public IEnumerable<Token> Lex()
     {
@@ -34,24 +40,26 @@ sealed class Lexer(string input)
                             while (MatchDigit()) { }
                             yield return OkDecimal();
                         } else {
-                            Program.Error("Dot must be followed by at least 1 digit");
+                            Error("Dot must be followed by at least 1 digit");
                         }
                     } else {
                         while (MatchDigit()) { }
                         yield return OkDecimal();
                     }
                 } else if (!char.IsWhiteSpace(c)) {
-                    Program.Error($"Stray '{c}' in program");
+                    Error($"Stray '{c}' in program");
                 }
                 break;
             }
         }
-
+        _start = _i;
         yield return Ok(Eof);
     }
 
-    Token OkDecimal() => new(new(_start,_i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
-    Token Ok(TokenType type) => new(new(_start,_i), type);
+    void Error(string message) => _errors.Enqueue(new(_i - 1, message));
+
+    Token OkDecimal() => new(new(_start, _i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
+    Token Ok(TokenType type) => new(new(_start, _i), type);
 
     ReadOnlySpan<char> Lexeme => _input.AsSpan()[_start.._i];
 
