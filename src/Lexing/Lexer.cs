@@ -50,8 +50,8 @@ sealed class Lexer(string input)
         yield return Ok(Eof);
     }
 
-    Token OkDecimal() => new Token(_start.._i, LitNumber, decimal.Parse(Lexeme, InvariantCulture));
-    Token Ok(TokenType type) => new Token(_start.._i, type);
+    Token OkDecimal() => new(new(_start,_i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
+    Token Ok(TokenType type) => new(new(_start,_i), type);
 
     ReadOnlySpan<char> Lexeme => _input.AsSpan()[_start.._i];
 

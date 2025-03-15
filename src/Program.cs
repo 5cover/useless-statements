@@ -35,7 +35,7 @@ static class Program
         AstPrinter.PrettyPrint(ast);
 
         void ParseError(int iToken, string message) =>
-            Console.Error.WriteLine($"Error on `{input[tokens[iToken].Extent]}` at offset {tokens[iToken].Extent.Start} : {message}");
+            Console.Error.WriteLine($"Error on `{input[(Range)tokens[iToken].Extent]}` at offset {tokens[iToken].Extent.Start} : {message}");
     }
 
     public static void Error(string message) =>

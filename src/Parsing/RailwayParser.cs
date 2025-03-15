@@ -141,18 +141,5 @@ sealed class RailwayParser : Parser
             _reportError(_i, message);
         }
     }
-
-    readonly struct Result<TNode>
-    {
-        public bool HasValue { get; init; }
-        [MemberNotNullWhen(true, nameof(HasValue))]
-        public TNode? Value { get; init; }
-        [MemberNotNullWhen(false, nameof(HasValue))]
-        public IReadOnlyCollection<Token>? Expected { get; init; }
-    }
-
-    static Result<TNode> Ok<TNode>(TNode value) => new() { HasValue = true, Value = value };
-    static Result<TNode> Fail<TNode>(IReadOnlyCollection<Token> expected) => new() { Expected = expected };
-
     #endregion Fundamentals
 }

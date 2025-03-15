@@ -3,4 +3,4 @@
 set -eu
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-src/csharp/bin/Debug/net8.0/useless-statements "$@"
+src/bin/Debug/net8.0/useless-statements "$@"

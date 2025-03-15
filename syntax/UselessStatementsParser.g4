@@ -10,7 +10,7 @@ stmt: Semi | expr;
 
 expr: expr_add;
 
-expr_add: expr_mult ((Plus | Minus) expr_add)*;
+expr_add: expr_mult ((Plus | Minus) expr_mult)*;
 
 expr_mult: expr_primary ((Mul | Div | Mod) expr_primary)*;
 
