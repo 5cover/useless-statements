@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-using Scover.Option;
+using Scover.Options;
 
 namespace Scover.UselessStatements.Parsing.DataOriented;
 

@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Scover.Option" Version="1.0.0" />
+    <PackageReference Include="Scover.Options" Version="1.1.0" />
   </ItemGroup>
 
 </Project>
