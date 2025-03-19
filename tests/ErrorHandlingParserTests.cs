@@ -1,42 +1,36 @@
-﻿using Scover.UselessStatements.Lexing;
+using Scover.UselessStatements.Lexing;
 using Scover.UselessStatements.Parsing;
 
 namespace Scover.UselessStatementsTests;
 
-public class PrimitiveParserTests
+[ErrorHandlingParsersDataSource]
+public class ErrorHandlingParserTests(ErrorHandlingParser parse)
 {
-    static Node.Prog Parse(string input)
-    {
-        var l = new Lexer(input);
-        var tokens = l.Lex().ToArray();
-        var p = new PrimitiveParser();
-        return p.Parse(tokens);
-    }
     [Test]
     public async Task EmptyProgram()
     {
-        var prog = Parse("");
+        var prog = await parse("", []);
         await Assert.That(prog.Body).IsEmpty();
     }
 
     [Test]
     public async Task SingleNop()
     {
-        var prog = Parse(";");
+        var prog = await parse(";", []);
         await Assert.That(await Assert.That(prog.Body).HasSingleItem()).IsTypeOf<Node.Stmt.Nop>();
     }
 
     [Test]
     public async Task SingleExprStmt()
     {
-        var prog = Parse("123");
+        var prog = await parse("123", []);
         await Assert2.Number(await Assert.That(prog.Body).HasSingleItem(), 123M);
     }
 
     [Test]
     public async Task MultipleStmts()
     {
-        var prog = Parse("123 45.67");
+        var prog = await parse("123 45.67", []);
         await Assert.That(prog.Body).HasCount().EqualTo(2);
         await Assert2.Number(prog.Body[0], 123M);
         await Assert2.Number(prog.Body[1], 45.67M);
@@ -45,7 +39,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprAdd()
     {
-        var prog = Parse("123 + 45.67");
+        var prog = await parse("123 + 45.67", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Plus);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -54,7 +48,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprSub()
     {
-        var prog = Parse("123 - 45.67");
+        var prog = await parse("123 - 45.67", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Minus);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -63,7 +57,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprMul()
     {
-        var prog = Parse("123 * 45.67");
+        var prog = await parse("123 * 45.67", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Mul);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -72,7 +66,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprMod()
     {
-        var prog = Parse("123 % 45.67");
+        var prog = await parse("123 % 45.67", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Mod);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -81,7 +75,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprDiv()
     {
-        var prog = Parse("123 / 45.67");
+        var prog = await parse("123 / 45.67", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Div);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -96,7 +90,7 @@ public class PrimitiveParserTests
     [Arguments("((((123) / 45.67)))")]
     public async Task ExprGrouped(string input)
     {
-        var prog = Parse(input);
+        var prog = await parse(input, []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Div);
         await Assert2.Number(e1.Lhs, 123M);
         await Assert2.Number(e1.Rhs, 45.67M);
@@ -113,7 +107,7 @@ public class PrimitiveParserTests
     [Arguments("(1) + 2 * (3)")]
     public async Task ExprNested(string input)
     {
-        var prog = Parse(input);
+        var prog = await parse(input, []);
 
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Plus);
         await Assert2.Number(e1.Lhs, 1M);
@@ -132,7 +126,7 @@ public class PrimitiveParserTests
     [Arguments("(1 + (2)) * 3")]
     public async Task ExprNested2(string input)
     {
-        var prog = Parse(input);
+        var prog = await parse(input, []);
 
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Mul);
         await Assert2.Number(e1.Rhs, 3M);
@@ -145,7 +139,7 @@ public class PrimitiveParserTests
     [Test]
     public async Task ExprComplex()
     {
-        var prog = Parse("1 + 2 * (3 - 4) / 5 % 6");
+        var prog = await parse("1 + 2 * (3 - 4) / 5 % 6", []);
         var e1 = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Plus);
         await Assert2.Number(e1.Lhs, 1M);
 
@@ -166,21 +160,27 @@ public class PrimitiveParserTests
     [Test]
     public async Task MissingOperand()
     {
-        var prog = Parse("1 +");
-        await Assert.That(prog.Body).IsEmpty();
+        var prog = await parse("1 +", [new(2, "expression", new HashSet<TokenType>() { TokenType.LitNumber, TokenType.LParen })]);
+        await Assert2.Number(await Assert.That(prog.Body).HasSingleItem(), 1);
     }
 
     [Test]
     public async Task MissingOperandFollowedByNop()
     {
-        var prog = Parse("1 + ;");
-        await Assert.That(await Assert.That(prog.Body).HasSingleItem()).IsTypeOf<Node.Stmt.Nop>();
+        var prog = await parse("1 + ;", [new(2, "expression", new HashSet<TokenType>() { TokenType.LitNumber, TokenType.LParen })]);
+        await Assert.That(prog.Body).HasCount().EqualTo(2);
+        using var _ = Assert.Multiple();
+        await Assert2.Number(prog.Body[0], 1);
+        await Assert.That(prog.Body[1]).IsTypeOf<Node.Stmt.Nop>();
     }
 
     [Test]
     public async Task MismatchedParentheses()
     {
-        var prog = Parse("(1 + 2");
-        await Assert.That(prog.Body).IsEmpty();
+        var prog = await parse("(1 + 2", [new(4, "braced group", new HashSet<TokenType>() { TokenType.RParen })]);
+        var binary = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Plus);
+        using var _ = Assert.Multiple();
+        await Assert2.Number(binary.Lhs, 1);
+        await Assert2.Number(binary.Rhs, 2);
     }
 }

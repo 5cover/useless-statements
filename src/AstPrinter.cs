@@ -1,5 +1,8 @@
 using System.Diagnostics;
+
 using Scover.UselessStatements.Lexing;
+using Scover.UselessStatements.Parsing;
+
 using static Scover.UselessStatements.Lexing.TokenType;
 
 namespace Scover.UselessStatements;
@@ -13,6 +16,15 @@ static class AstPrinter
             stmt.PrettyPrint(1);
         }
     }
+
+    static char GetOperator(this TokenType t) => t switch {
+        Div => '/',
+        Minus => '-',
+        Mod => '%',
+        Mul => '*',
+        Plus => '+',
+        _ => throw new UnreachableException(),
+    };
 
     static void PrettyPrint(this Node.Stmt stmt, int lvl)
     {
@@ -37,13 +49,4 @@ static class AstPrinter
             throw new UnreachableException();
         }
     }
-
-    static char GetOperator(this TokenType t) => t switch {
-        Div => '/',
-        Minus => '-',
-        Mod => '%',
-        Mul => '*',
-        Plus => '+',
-        _ => throw new UnreachableException(),
-    };
 }

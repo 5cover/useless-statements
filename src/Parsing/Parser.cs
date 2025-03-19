@@ -2,18 +2,17 @@ using Scover.UselessStatements.Lexing;
 
 namespace Scover.UselessStatements.Parsing;
 
-public abstract class Parser(Action<ParserError> reportError)
+public abstract class Parser
 {
-    protected IReadOnlyList<Token> Tokens { get; private set; } = [];
-
     /// <summary>
     /// Current token index
     /// </summary>
     protected int I { get; set; }
 
-    protected bool IsAtEnd => I >= Tokens.Count || Tokens[I].Type == TokenType.Eof;
+    protected bool IsAtEnd => I >= Tokens.Length || Tokens[I].Type == TokenType.Eof;
+    protected Token[] Tokens { get; private set; } = [];
 
-    public Node.Prog Parse(IReadOnlyList<Token> tokens)
+    public Node.Prog Parse(Token[] tokens)
     {
         Tokens = tokens;
         I = 0;
@@ -21,6 +20,4 @@ public abstract class Parser(Action<ParserError> reportError)
     }
 
     protected abstract Node.Prog Prog();
-
-    protected void Error(string subject, IEnumerable<TokenType> expected) => reportError(new(I, subject, expected.ToHashSet()));
 }

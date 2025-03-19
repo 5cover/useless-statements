@@ -1,5 +1,5 @@
-using Scover.UselessStatements;
 using Scover.UselessStatements.Lexing;
+using Scover.UselessStatements.Parsing;
 
 namespace Scover.UselessStatementsTests;
 

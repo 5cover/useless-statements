@@ -1,6 +1,10 @@
 {
   "profiles": {
-    "src helpful (5+;)": {
+    "src data": {
+      "commandName": "Project",
+      "commandLineArgs": "data \"(5 4)\""
+    },
+    "src helpful": {
       "commandName": "Project",
       "commandLineArgs": "helpful (5+;)"
     }

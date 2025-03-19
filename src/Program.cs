@@ -25,11 +25,11 @@ static class Program
             parser = new PrimitiveParser();
         } else if ("helpful".StartsWith(parserName)) {
             parser = new HelpfulParser(ParseError);
-        } /*else if ("railway".StartsWith(parserName)) {
-            parser = new RailwayParser(ParseError);
+        } else if ("railway".StartsWith(parserName)) {
+            parser = new RailwayParser();
         } else if ("data".StartsWith(parserName)) {
             parser = new DataOrientedParser(ParseError);
-        }*/ else {
+        } else {
             Console.Error.WriteLine($"{Environment.ProcessPath}: unknown parser: {parserName}");
             Environment.ExitCode = 1;
             return;

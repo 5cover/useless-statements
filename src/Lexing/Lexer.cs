@@ -7,10 +7,11 @@ namespace Scover.UselessStatements.Lexing;
 public sealed class Lexer(string input)
 {
     readonly Queue<LexerError> _errors = new();
-    int _start;
     int _i;
+    int _start;
+    bool IsAtEnd => _i >= input.Length;
 
-    public bool TryGetError(out LexerError error) => _errors.TryDequeue(out error);
+    ReadOnlySpan<char> Lexeme => input.AsSpan()[_start.._i];
 
     public IEnumerable<Token> Lex()
     {
@@ -54,14 +55,18 @@ public sealed class Lexer(string input)
         yield return Ok(Eof);
     }
 
-    void Error(string message) => _errors.Enqueue(new(_i - 1, message));
-
-    Token OkDecimal() => new(new(_start, _i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
-    Token Ok(TokenType type) => new(new(_start, _i), type);
-
-    ReadOnlySpan<char> Lexeme => input.AsSpan()[_start.._i];
+    public bool TryGetError(out LexerError error) => _errors.TryDequeue(out error);
 
     char Advance() => input[_i++];
+
+    void Error(string message) => _errors.Enqueue(new(_i - 1, message));
+
+    bool Match(char expected)
+    {
+        if (IsAtEnd || input[_i] != expected) return false;
+        ++_i;
+        return true;
+    }
 
     bool MatchDigit()
     {
@@ -70,11 +75,7 @@ public sealed class Lexer(string input)
         return true;
     }
 
-    bool Match(char expected)
-    {
-        if (IsAtEnd || input[_i] != expected) return false;
-        ++_i;
-        return true;
-    }
-    bool IsAtEnd => _i >= input.Length;
+    Token Ok(TokenType type) => new(new(_start, _i), type);
+
+    Token OkDecimal() => new(new(_start, _i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
 }

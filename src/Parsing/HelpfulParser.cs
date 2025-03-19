@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 using Scover.UselessStatements.Lexing;
 
 using static Scover.UselessStatements.Lexing.TokenType;
@@ -12,7 +14,7 @@ namespace Scover.UselessStatements.Parsing;
 /// The helpful parser works by reporting errors when it fails to parse a terminal.
 /// When a non-terminal fails (a parsing function returns <see langword="null"/>), it doesn't report an error, as the error has already been reported for the particular terminal that failed.
 /// </remarks>
-public sealed class HelpfulParser(Action<ParserError> reportError) : Parser(reportError)
+public class HelpfulParser(Action<ParserError> reportError) : Parser
 {
     protected override Node.Prog Prog()
     {
@@ -29,8 +31,6 @@ public sealed class HelpfulParser(Action<ParserError> reportError) : Parser(repo
         }
         return new(body);
     }
-
-    Node.Stmt? Stmt() => Match(Semi) ? new Node.Stmt.Nop() : Expr();
 
     Node.Stmt.Expr? Expr() => ParseExprBinaryLeftAssociative(ExprMult, [Plus, Minus]);
 
@@ -57,18 +57,6 @@ public sealed class HelpfulParser(Action<ParserError> reportError) : Parser(repo
         Error("expression", [LitNumber, LParen]);
 
         return null;
-    }
-
-    Node.Stmt.Expr? ParseExprBinaryLeftAssociative(Func<Node.Stmt.Expr?> operand, TokenType[] operators)
-    {
-        Node.Stmt.Expr? expr = operand();
-        if (expr is null) return null;
-        while (Match(operators, out var op)) {
-            var rhs = operand();
-            if (rhs is null) return null;
-            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
-        }
-        return expr;
     }
 
     bool Match(TokenType expected, out object? value)
@@ -99,4 +87,20 @@ public sealed class HelpfulParser(Action<ParserError> reportError) : Parser(repo
         I++;
         return true;
     }
+
+    Node.Stmt.Expr? ParseExprBinaryLeftAssociative(Func<Node.Stmt.Expr?> operand, TokenType[] operators)
+    {
+        Node.Stmt.Expr? expr = operand();
+        if (expr is null) return null;
+        while (Match(operators, out var op)) {
+            var rhs = operand();
+            if (rhs is null) return expr;
+            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
+        }
+        return expr;
+    }
+
+    Node.Stmt? Stmt() => Match(Semi) ? new Node.Stmt.Nop() : Expr();
+
+    void Error(string subject, ImmutableHashSet<TokenType> expected) => reportError(new(I, subject, expected));
 }

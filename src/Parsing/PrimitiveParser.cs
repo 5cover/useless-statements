@@ -1,4 +1,5 @@
 using Scover.UselessStatements.Lexing;
+
 using static Scover.UselessStatements.Lexing.TokenType;
 
 namespace Scover.UselessStatements.Parsing;
@@ -6,7 +7,6 @@ namespace Scover.UselessStatements.Parsing;
 /// <summary>
 /// A primitive parser. Returns <see langword="null"/> and calls that error handling.
 /// </summary>
-/// <param name="tokens">The tokens to parse.</param>
 public sealed class PrimitiveParser : Parser
 {
     protected override Node.Prog Prog()
@@ -18,8 +18,6 @@ public sealed class PrimitiveParser : Parser
         }
         return new(body);
     }
-
-    Node.Stmt? Stmt() => Match(Semi) ? new Node.Stmt.Nop() : Expr();
 
     Node.Stmt.Expr? Expr() => ParseExprBinaryLeftAssociative(ExprMult, [Plus, Minus]);
 
@@ -39,16 +37,6 @@ public sealed class PrimitiveParser : Parser
         }
 
         return null;
-    }
-
-    Node.Stmt.Expr? ParseExprBinaryLeftAssociative(Func<Node.Stmt.Expr?> operand, TokenType[] operators)
-    {
-        Node.Stmt.Expr? expr = operand(); if (expr is null) return null;
-        while (Match(operators, out var op)) {
-            var rhs = operand(); if (rhs is null) return null;
-            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
-        }
-        return expr;
     }
 
     bool Match(TokenType expected, out object? value)
@@ -80,5 +68,15 @@ public sealed class PrimitiveParser : Parser
         return true;
     }
 
-    bool IsAtEnd => Tokens[I].Type == Eof;
+    Node.Stmt.Expr? ParseExprBinaryLeftAssociative(Func<Node.Stmt.Expr?> operand, TokenType[] operators)
+    {
+        Node.Stmt.Expr? expr = operand(); if (expr is null) return null;
+        while (Match(operators, out var op)) {
+            var rhs = operand(); if (rhs is null) return null;
+            expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
+        }
+        return expr;
+    }
+
+    Node.Stmt? Stmt() => Match(Semi) ? new Node.Stmt.Nop() : Expr();
 }

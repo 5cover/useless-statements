@@ -1,13 +1,9 @@
 using Scover.UselessStatements.Lexing;
 
-namespace Scover.UselessStatements;
+namespace Scover.UselessStatements.Parsing;
 
 public interface Node
 {
-    sealed class Prog(IReadOnlyList<Stmt> body) : Node
-    {
-        public IReadOnlyList<Stmt> Body { get; } = body;
-    }
     interface Stmt : Node
     {
         interface Expr : Stmt
@@ -18,13 +14,18 @@ public interface Node
                 public TokenType Op { get; } = op;
                 public Expr Rhs { get; } = rhs;
             }
+
             sealed class Number(decimal value) : Expr
             {
                 public decimal Value { get; } = value;
             }
         }
-        sealed class Nop : Stmt
-        {
-        }
+
+        sealed class Nop : Stmt;
+    }
+
+    sealed class Prog(IReadOnlyList<Stmt> body) : Node
+    {
+        public IReadOnlyList<Stmt> Body { get; } = body;
     }
 }

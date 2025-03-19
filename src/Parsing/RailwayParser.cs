@@ -4,15 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 using Scover.UselessStatements.Lexing;
 
 using static Scover.UselessStatements.Lexing.TokenType;
-using static Scover.UselessStatements.Parsing.RailwayParser;
 
 namespace Scover.UselessStatements.Parsing;
 
 /// <summary>
 /// A railway-oriented parser that produces error messages and returns null on error.
 /// </summary>
-/// <param name="reportError">The function to call to report an error (represented as a string)</param>
-/// 
+///
 /// New ParseOperation implementation details
 /// - Fewer lambdas
 /// - Same method for terminals and non-terminals
@@ -22,7 +20,7 @@ namespace Scover.UselessStatements.Parsing;
 /// Problems : this parser doesn't have errors.
 /// Errors have to be manually kept in sync with the parsing logic.
 /// this is duplication
-sealed class RailwayParser(Action<ParserError> reportError) : Parser(reportError)
+sealed class RailwayParser : Parser
 {
     protected override Node.Prog Prog()
     {
@@ -30,13 +28,11 @@ sealed class RailwayParser(Action<ParserError> reportError) : Parser(reportError
         return new(body);
     }
 
-    Node.Stmt? Stmt() => One(Semi) ? new Node.Stmt.Nop() : Expr();
-
     Node.Stmt.Expr? Expr() => First([Number, Grouping], out var expr)
         ? expr
         : null;
 
-    Node.Stmt.Expr? Grouping() 
+    Node.Stmt.Expr? Grouping()
         => One(LParen)
          && One(Expr, out var expr)
          && One(RParen)
@@ -47,23 +43,9 @@ sealed class RailwayParser(Action<ParserError> reportError) : Parser(reportError
         ? new(value)
         : null;
 
-    #region Fundamentals
+    Node.Stmt? Stmt() => One(Semi) ? new Node.Stmt.Nop() : Expr();
 
-    bool ZeroOrMore<TNode>(Func<TNode?> parser, out List<TNode> result) where TNode : class
-    {
-        result = [];
-        while (!IsAtEnd) {
-            int iStart = I;
-            var s = parser();
-            if (s is null) {
-                // todo: cause error here from the failed result
-                if (iStart == I) I++;
-            } else {
-                result.Add(s);
-            }
-        }
-        return true;
-    }
+    #region Fundamentals
 
     static bool First<TNode>(IEnumerable<Func<TNode?>> parsers, [NotNullWhen(true)] out TNode? result) where TNode : class
     {
@@ -106,6 +88,22 @@ sealed class RailwayParser(Action<ParserError> reportError) : Parser(reportError
             return false;
         }
         I++;
+        return true;
+    }
+
+    bool ZeroOrMore<TNode>(Func<TNode?> parser, out List<TNode> result) where TNode : class
+    {
+        result = [];
+        while (!IsAtEnd) {
+            int iStart = I;
+            var s = parser();
+            if (s is null) {
+                // todo: cause error here from the failed result
+                if (iStart == I) I++;
+            } else {
+                result.Add(s);
+            }
+        }
         return true;
     }
 
