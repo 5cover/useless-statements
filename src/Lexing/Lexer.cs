@@ -1,18 +1,16 @@
 using static System.Globalization.CultureInfo;
+
 using static Scover.UselessStatements.Lexing.TokenType;
 
 namespace Scover.UselessStatements.Lexing;
 
-
-
 public sealed class Lexer(string input)
 {
-    readonly Queue<SyntaxError> _errors = new();
-    readonly string _input = input;
+    readonly Queue<LexerError> _errors = new();
     int _start;
     int _i;
 
-    public bool TryGetError(out SyntaxError error) => _errors.TryDequeue(out error);
+    public bool TryGetError(out LexerError error) => _errors.TryDequeue(out error);
 
     public IEnumerable<Token> Lex()
     {
@@ -40,14 +38,14 @@ public sealed class Lexer(string input)
                             while (MatchDigit()) { }
                             yield return OkDecimal();
                         } else {
-                            Error(ErrorVerb.Insert, "digit");
+                            Error("expected digit");
                         }
                     } else {
                         while (MatchDigit()) { }
                         yield return OkDecimal();
                     }
                 } else if (!char.IsWhiteSpace(c)) {
-                    Error(ErrorVerb.Remove, $"`{c}`");
+                    Error($"stray `{c}`");
                 }
                 break;
             }
@@ -56,27 +54,27 @@ public sealed class Lexer(string input)
         yield return Ok(Eof);
     }
 
-    void Error(ErrorVerb verb, string subject) => _errors.Enqueue(new(_i - 1, verb, subject));
+    void Error(string message) => _errors.Enqueue(new(_i - 1, message));
 
     Token OkDecimal() => new(new(_start, _i), LitNumber, decimal.Parse(Lexeme, InvariantCulture));
     Token Ok(TokenType type) => new(new(_start, _i), type);
 
-    ReadOnlySpan<char> Lexeme => _input.AsSpan()[_start.._i];
+    ReadOnlySpan<char> Lexeme => input.AsSpan()[_start.._i];
 
-    char Advance() => _input[_i++];
+    char Advance() => input[_i++];
 
     bool MatchDigit()
     {
-        if (IsAtEnd || !char.IsAsciiDigit(_input[_i])) return false;
+        if (IsAtEnd || !char.IsAsciiDigit(input[_i])) return false;
         ++_i;
         return true;
     }
 
     bool Match(char expected)
     {
-        if (IsAtEnd || _input[_i] != expected) return false;
+        if (IsAtEnd || input[_i] != expected) return false;
         ++_i;
         return true;
     }
-    bool IsAtEnd => _i >= _input.Length;
+    bool IsAtEnd => _i >= input.Length;
 }

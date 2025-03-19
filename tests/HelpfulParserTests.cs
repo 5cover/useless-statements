@@ -6,14 +6,14 @@ namespace Scover.UselessStatementsTests;
 
 public class HelpfulParserTests
 {
-    static async Task<Node.Prog> Parse(string input, IReadOnlyList<SyntaxError> errors)
+    static async Task<Node.Prog> Parse(string input, IReadOnlyList<ParserError> errors)
     {
-        int n_errors = 0;
+        int nErrors = 0;
         var l = new Lexer(input);
         var tokens = l.Lex().ToArray();
-        var p = new HelpfulParser(async e => await Assert.That(e).IsEqualTo(errors[n_errors++]));
+        var p = new HelpfulParser(async e => await Assert.That(e).IsEqualTo(errors[nErrors++]));
         var prog = p.Parse(tokens);
-        await Assert.That(errors).HasCount().EqualTo(n_errors);
+        await Assert.That(errors).HasCount().EqualTo(nErrors);
         return prog;
     }
 
@@ -171,21 +171,23 @@ public class HelpfulParserTests
     [Test]
     public async Task MissingOperand()
     {
-        var prog = await Parse("1 +", [new(2, ErrorVerb.Replace, "expression")]);
+        var prog = await Parse("1 +", [new(2, "expression", new HashSet<TokenType>() { TokenType.LitNumber, TokenType.LParen })]);
         await Assert.That(prog.Body).IsEmpty();
     }
 
     [Test]
     public async Task MissingOperandFollowedByNop()
     {
-        var prog = await Parse("1 + ;", [new(2, ErrorVerb.Replace, "expression")]);
+        var prog = await Parse("1 + ;", [new(2, "expression", new HashSet<TokenType>() { TokenType.LitNumber, TokenType.LParen })]);
         await Assert.That(await Assert.That(prog.Body).HasSingleItem()).IsTypeOf<Node.Stmt.Nop>();
     }
 
     [Test]
     public async Task MismatchedParentheses()
     {
-        var prog = await Parse("(1 + 2", [new(4, ErrorVerb.Insert, "`)`")]);
-        await Assert.That(prog.Body).IsEmpty();
+        var prog = await Parse("(1 + 2", [new(4, "braced group", new HashSet<TokenType>() { TokenType.RParen })]);
+        var binary = await Assert2.Binary(await Assert.That(prog.Body).HasSingleItem(), TokenType.Plus);
+        await Assert2.Number(binary.Lhs, 1);
+        await Assert2.Number(binary.Rhs, 2);
     }
 }

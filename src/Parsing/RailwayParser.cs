@@ -1,46 +1,29 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+
 using Scover.UselessStatements.Lexing;
+
 using static Scover.UselessStatements.Lexing.TokenType;
+using static Scover.UselessStatements.Parsing.RailwayParser;
 
 namespace Scover.UselessStatements.Parsing;
 
 /// <summary>
-/// An railway-oriented parser that produces error messages and returns null on error.
+/// A railway-oriented parser that produces error messages and returns null on error.
 /// </summary>
+/// <param name="reportError">The function to call to report an error (represented as a string)</param>
 /// 
-
-/*
-New ParseOperation implementation details
-- Fewer lambdas
-- Same method for terminals and non-terminals
-- Should read like a recipe
-- Direct translation of the railroad diagram
-*/
-
-/*
-Problems : this parser doesnt have errors.
-Errors have to be manually kept in sync with the parisng logic.
-
-this is duplication
-*/
-
-sealed class RailwayParser : Parser
+/// New ParseOperation implementation details
+/// - Fewer lambdas
+/// - Same method for terminals and non-terminals
+/// - Should read like a recipe
+/// - Direct translation of the railroad diagram
+///
+/// Problems : this parser doesn't have errors.
+/// Errors have to be manually kept in sync with the parsing logic.
+/// this is duplication
+sealed class RailwayParser(Action<ParserError> reportError) : Parser(reportError)
 {
-    internal delegate void ErrorReporter(int tokenIndex, string message);
-    readonly ErrorReporter _reportError;
-
-    /// <param name="tokens">The tokens to parse</param>
-    /// <param name="reportError">The function to call to report an error (represented as a string)</param>
-    public RailwayParser(ErrorReporter reportError)
-    {
-        _reportError = reportError;
-    }
-
-    public Node.Prog Parse() => Prog();
-
-    #region Productions
-
     protected override Node.Prog Prog()
     {
         ZeroOrMore(Stmt, out var body);
@@ -49,24 +32,20 @@ sealed class RailwayParser : Parser
 
     Node.Stmt? Stmt() => One(Semi) ? new Node.Stmt.Nop() : Expr();
 
-    Node.Stmt.Expr? Expr()
-     => First([Number, Grouping], out var expr)
-     ? expr
-     : null;
+    Node.Stmt.Expr? Expr() => First([Number, Grouping], out var expr)
+        ? expr
+        : null;
 
-    Node.Stmt.Expr? Grouping()
-     => One(LParen)
-     && One(Expr, out var expr)
-     && One(RParen)
-     ? expr
-     : null;
+    Node.Stmt.Expr? Grouping() 
+        => One(LParen)
+         && One(Expr, out var expr)
+         && One(RParen)
+                ? expr
+                : null;
 
-    Node.Stmt.Expr.Number? Number()
-     => One(LitNumber, out decimal value)
-     ? new(value)
-     : null;
-
-    #endregion Productions
+    Node.Stmt.Expr.Number? Number() => One(LitNumber, out decimal value)
+        ? new(value)
+        : null;
 
     #region Fundamentals
 
@@ -74,11 +53,11 @@ sealed class RailwayParser : Parser
     {
         result = [];
         while (!IsAtEnd) {
-            int iStart = _i;
+            int iStart = I;
             var s = parser();
             if (s is null) {
                 // todo: cause error here from the failed result
-                if (iStart == _i) _i++;
+                if (iStart == I) I++;
             } else {
                 result.Add(s);
             }
@@ -97,49 +76,38 @@ sealed class RailwayParser : Parser
         return false;
     }
 
-    static bool One<TNode>(Func<TNode?> parser, [NotNullWhen(true)] out TNode? result) where TNode : class
-     => (result = parser()) is not null;
+    static bool One<TNode>(Func<TNode?> parser, [NotNullWhen(true)] out TNode? result) where TNode : class => (result = parser()) is not null;
 
     bool One<TValue>(TokenType expected, [NotNullWhen(true)] out TValue? value)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             value = default;
             return false;
         }
-        var v = Tokens[_i++].Value;
+        var v = Tokens[I++].Value;
         Debug.Assert(v is TValue);
         value = (TValue)v;
         return true;
     }
 
-    bool One(TokenType[] expected, out TokenType choosen)
+    bool One(IEnumerable<TokenType> expected, out TokenType choosen)
     {
-        if (IsAtEnd || !expected.Contains(Tokens[_i].Type)) {
+        if (IsAtEnd || !expected.Contains(Tokens[I].Type)) {
             choosen = default;
             return false;
         }
-        choosen = Tokens[_i++].Type;
+        choosen = Tokens[I++].Type;
         return true;
     }
 
     bool One(TokenType expected)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             return false;
         }
-        _i++;
+        I++;
         return true;
     }
 
-    bool IsAtEnd => _i >= Tokens.Count || Tokens[_i].Type == Eof;
-
-    int _iLastError = -1;
-    void Error(string message)
-    {
-        if (_iLastError != _i) {
-            _iLastError = _i;
-            _reportError(_i, message);
-        }
-    }
     #endregion Fundamentals
 }

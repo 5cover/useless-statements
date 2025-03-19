@@ -5,7 +5,7 @@ namespace Scover.UselessStatementsTests;
 
 public class LexerTests
 {
-    static async Task AssertErrors(Lexer l, IReadOnlyList<SyntaxError> errors)
+    static async Task AssertErrors(Lexer l, IReadOnlyList<LexerError> errors)
     {
         int i = 0;
         while (l.TryGetError(out var e)) {
@@ -113,7 +113,7 @@ public class LexerTests
         const string Input = "123..45";
         var l = new Lexer(Input);
         var tokens = l.Lex().ToArray();
-        await AssertErrors(l, [new(3, ErrorVerb.Insert, "digit")]);
+        await AssertErrors(l, [new(3, "expected digit")]);
         await Assert.That(tokens).HasCount().EqualTo(2);
         using var _ = Assert.Multiple();
         await AssertIsEofToken(Input, tokens[1]);
@@ -127,7 +127,7 @@ public class LexerTests
     {
         var l = new Lexer(input);
         var tokens = l.Lex().ToArray();
-        await AssertErrors(l, [new(0, ErrorVerb.Remove, $"`{input}`")]);
+        await AssertErrors(l, [new(0, $"stray `{input}`")]);
         await AssertIsEofToken(input, await Assert.That(tokens).HasSingleItem());
     }
 }

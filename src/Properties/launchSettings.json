@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "src helpful (5+;)": {
+      "commandName": "Project",
+      "commandLineArgs": "helpful (5+;)"
+    }
+  }
+}

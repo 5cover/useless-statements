@@ -1,36 +1,31 @@
 using Scover.UselessStatements.Lexing;
+
 using static Scover.UselessStatements.Lexing.TokenType;
 
 namespace Scover.UselessStatements.Parsing;
 
 /// <summary>
-/// An helpful parser that produces error messages and returns null on error.
+/// A helpful parser that produces error messages and returns null on error.
 /// </summary>
-/// <param name="tokens">The tokens to parse</param>
 /// <param name="reportError">The function to call to report an error (represented as a string)</param>
 /// <remarks>
 /// The helpful parser works by reporting errors when it fails to parse a terminal.
 /// When a non-terminal fails (a parsing function returns <see langword="null"/>), it doesn't report an error, as the error has already been reported for the particular terminal that failed.
 /// </remarks>
-public sealed class HelpfulParser(Action<SyntaxError> reportError) : Parser
+public sealed class HelpfulParser(Action<ParserError> reportError) : Parser(reportError)
 {
-
-    readonly Action<SyntaxError> _reportError = reportError;
-
     protected override Node.Prog Prog()
     {
         List<Node.Stmt> body = [];
         while (!IsAtEnd) {
-            int iStart = _i;
+            int iStart = I;
             var s = Stmt();
             if (s is not null) body.Add(s);
             // A Very Primitive Sychronization
             // but it prevents infinite loops if nothing was parsed.
             // Check if we read something before incrementing - otherwise we risk skipping valid tokens.
-            // Example : "(5+;". This prog fails in expr on ';', but ';' should still be parsed as a valid nop.
-            // Trade-off : duplicate errors. Take "(5+)". The prog fails in expr on ')'. The prog tries again and fails again with the same error
-            // solution : disallow reporting multiple errors on the same token (see Error)
-            else if (iStart == _i) _i++;
+            // Example : `(5+;`. This prog fails in expr on `;`, but `;` should still be parsed as a valid nop.
+            else if (iStart == I) I++;
         }
         return new(body);
     }
@@ -45,25 +40,32 @@ public sealed class HelpfulParser(Action<SyntaxError> reportError) : Parser
     {
         if (Match(LitNumber, out var value)) {
             return new Node.Stmt.Expr.Number((decimal)value.NotNull());
-        } else if (Match(LParen)) {
-            var expr = Expr();
-            if (Match(RParen)) {
-                return expr;
-            } else {
-                Error(ErrorVerb.Insert, "`)`");
-            }
-        } else {
-            Error(ErrorVerb.Replace, "expression");
         }
+        if (Match(LParen)) {
+            var expr = Expr();
+            // Only one error per production rule. If Expr failed, it's probably irrelevant to try to make sense of what's next.
+            // Example: `(5+;)`
+            // 1. Error on first `;` for expression
+            // 2. Error on first `;` for braced group
+            // 3. Error on `)` for expression
+            // This rule gets rid of error 2.
+            // With something like `(5+)`, the `)` is still consumend and doesn't cause an expression error later.
+            if (!Match(RParen) && expr is not null) Error("braced group", [RParen]);
+            return expr;
+        }
+
+        Error("expression", [LitNumber, LParen]);
 
         return null;
     }
 
     Node.Stmt.Expr? ParseExprBinaryLeftAssociative(Func<Node.Stmt.Expr?> operand, TokenType[] operators)
     {
-        Node.Stmt.Expr? expr = operand(); if (expr is null) return null;
+        Node.Stmt.Expr? expr = operand();
+        if (expr is null) return null;
         while (Match(operators, out var op)) {
-            var rhs = operand(); if (rhs is null) return null;
+            var rhs = operand();
+            if (rhs is null) return null;
             expr = new Node.Stmt.Expr.Binary(expr, op, rhs);
         }
         return expr;
@@ -71,34 +73,30 @@ public sealed class HelpfulParser(Action<SyntaxError> reportError) : Parser
 
     bool Match(TokenType expected, out object? value)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             value = null;
             return false;
         }
-        value = Tokens[_i++].Value;
+        value = Tokens[I++].Value;
         return true;
     }
 
-    bool Match(TokenType[] expected, out TokenType choosen)
+    bool Match(IEnumerable<TokenType> expected, out TokenType choosen)
     {
-        if (IsAtEnd || !expected.Contains(Tokens[_i].Type)) {
+        if (IsAtEnd || !expected.Contains(Tokens[I].Type)) {
             choosen = default;
             return false;
         }
-        choosen = Tokens[_i++].Type;
+        choosen = Tokens[I++].Type;
         return true;
     }
 
     bool Match(TokenType expected)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             return false;
         }
-        _i++;
+        I++;
         return true;
     }
-
-    bool IsAtEnd => _i >= Tokens.Count || Tokens[_i].Type == Eof;
-
-    void Error(ErrorVerb verb, string subject) => _reportError(new(_i, verb, subject));
 }

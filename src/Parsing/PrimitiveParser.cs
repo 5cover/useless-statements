@@ -53,32 +53,32 @@ public sealed class PrimitiveParser : Parser
 
     bool Match(TokenType expected, out object? value)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             value = null;
             return false;
         }
-        value = Tokens[_i++].Value;
+        value = Tokens[I++].Value;
         return true;
     }
 
     bool Match(TokenType[] expected, out TokenType choosen)
     {
-        if (IsAtEnd || !expected.Contains(Tokens[_i].Type)) {
+        if (IsAtEnd || !expected.Contains(Tokens[I].Type)) {
             choosen = default;
             return false;
         }
-        choosen = Tokens[_i++].Type;
+        choosen = Tokens[I++].Type;
         return true;
     }
 
     bool Match(TokenType expected)
     {
-        if (IsAtEnd || expected != Tokens[_i].Type) {
+        if (IsAtEnd || expected != Tokens[I].Type) {
             return false;
         }
-        _i++;
+        I++;
         return true;
     }
 
-    bool IsAtEnd => Tokens[_i].Type == Eof;
+    bool IsAtEnd => Tokens[I].Type == Eof;
 }
